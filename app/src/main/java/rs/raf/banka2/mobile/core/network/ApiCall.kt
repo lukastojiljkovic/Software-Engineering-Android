@@ -88,7 +88,11 @@ internal fun parseHttpError(code: Int, rawBody: String?, cause: Throwable? = nul
 
 private fun defaultMessageForCode(code: Int): String = when (code) {
     400 -> "Neispravan zahtev."
-    401 -> "Sesija je istekla, prijavi se ponovo."
+    // 12.05.2026 vece (Bug T1-001/T1-012): BE sad vraca 401 i za pogresne
+    // kredencijale (ne samo expired session). Default je generic poruka koja
+    // pokriva oba slucaja — login screen mapira BE message ako postoji
+    // (parsed?.message u parseHttpError uvek pobedjuje default).
+    401 -> "Neispravan email ili lozinka."
     403 -> "Nemate dozvolu za ovu akciju."
     404 -> "Trazeni resurs nije pronadjen."
     409 -> "Konflikt: stanje resursa je vec promenjeno."

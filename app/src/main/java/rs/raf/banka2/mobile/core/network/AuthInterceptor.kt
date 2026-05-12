@@ -21,7 +21,11 @@ class AuthInterceptor @Inject constructor(
         val original = chain.request()
         val path = original.url.encodedPath
 
-        if (path in BYPASS_PATHS || path.startsWith("/auth/")) {
+        // Sve auth rute prolaze bez Bearer-a:
+        //  - /auth/* (login, refresh, password_reset, logout)
+        //  - /auth-employee/activate (POST aktivacija)
+        //  - /auth-employee/activation-token/{token}/status (Sc 9 pre-check, 12.05.2026)
+        if (path in BYPASS_PATHS || path.startsWith("/auth/") || path.startsWith("/auth-employee/")) {
             return chain.proceed(original)
         }
 
