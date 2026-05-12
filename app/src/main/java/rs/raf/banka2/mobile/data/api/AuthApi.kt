@@ -2,8 +2,11 @@ package rs.raf.banka2.mobile.data.api
 
 import retrofit2.Response
 import retrofit2.http.Body
+import retrofit2.http.GET
 import retrofit2.http.POST
+import retrofit2.http.Path
 import rs.raf.banka2.mobile.data.dto.auth.ActivateAccountRequest
+import rs.raf.banka2.mobile.data.dto.auth.ActivationTokenStatusResponse
 import rs.raf.banka2.mobile.data.dto.auth.LoginRequest
 import rs.raf.banka2.mobile.data.dto.auth.LoginResponse
 import rs.raf.banka2.mobile.data.dto.auth.MessageResponse
@@ -27,6 +30,13 @@ interface AuthApi {
 
     @POST("auth-employee/activate")
     suspend fun activateEmployee(@Body body: ActivateAccountRequest): Response<MessageResponse>
+
+    /**
+     * Spec Sc 9 + ad-hoc bug 12.05.2026: pre renderovanja aktivacijske forme,
+     * FE/Mobile pre-check stanja tokena. Endpoint je javan (bez auth).
+     */
+    @GET("auth-employee/activation-token/{token}/status")
+    suspend fun activationTokenStatus(@Path("token") token: String): Response<ActivationTokenStatusResponse>
 
     /**
      * Server-side blacklisting trenutnog access tokena (Opciono.1). Bearer header

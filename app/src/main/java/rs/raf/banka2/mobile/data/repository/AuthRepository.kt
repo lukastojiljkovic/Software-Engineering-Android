@@ -12,6 +12,7 @@ import rs.raf.banka2.mobile.core.storage.AuthStore
 import rs.raf.banka2.mobile.data.api.AuthApi
 import rs.raf.banka2.mobile.data.api.EmployeeApi
 import rs.raf.banka2.mobile.data.dto.auth.ActivateAccountRequest
+import rs.raf.banka2.mobile.data.dto.auth.ActivationTokenStatusResponse
 import rs.raf.banka2.mobile.data.dto.auth.LoginRequest
 import rs.raf.banka2.mobile.data.dto.auth.LoginResponse
 import rs.raf.banka2.mobile.data.dto.auth.PasswordResetConfirmRequest
@@ -77,6 +78,17 @@ class AuthRepository @Inject constructor(
                     is ApiResult.Loading -> result
                 }
             }
+
+    /**
+     * Spec Sc 9 + ad-hoc bug 12.05.2026: pre nego sto Mobile renderuje formu
+     * za aktivaciju, proverava stanje tokena. Bez ovog koraka, korisnik koji
+     * je vec uspesno aktivirao nalog moze osveziti stranicu (npr. back gesture
+     * + open notification link) i ponovo videti formu — submit bi pukao sa
+     * BE 400 "Activation token already used or invalidated." Sad UI prikazuje
+     * odgovarajuci ekran (USED/EXPIRED/INVALID/ALREADY_ACTIVE) umesto forme.
+     */
+    suspend fun activationTokenStatus(token: String): ApiResult<ActivationTokenStatusResponse> =
+        safeApiCall { authApi.activationTokenStatus(token) }
 
     suspend fun logout() {
         // Opciono.1: server-side blacklist tokena pre brisanja lokalno.

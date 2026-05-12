@@ -63,25 +63,42 @@ class LoginViewModel @Inject constructor(
     }
 
     /**
-     * Opciono.2: BE vraca poruku oblika "Account temporarily locked. Try again
-     * in N seconds." kad je 5+ uzastopno pogresnih login pokusaja okidalo
-     * `AuthRateLimitFilter`/lockout logiku. UI prikazuje serpski equivalent
-     * sa minutama umesto sekundi (zaokruzeno na 1 min minimum).
+     * BE vraca lockout poruku:
+     *  - Pre 12.05.2026: "Account temporarily locked. Try again in N seconds." (EN)
+     *  - Posle 12.05.2026 (Bug T1-017): "Nalog je privremeno zakljucan zbog
+     *    previse neuspesnih pokusaja. Pokusajte ponovo za N min." (SR)
+     *
+     * Mobile prepoznaje OBA prefix-a (forward + backwards-compat). Ako je SR,
+     * BE poruka je vec spremna za UI — vracamo je 1:1. Ako je EN, parsiramo
+     * sekunde i normalizujemo na min.
+     *
+     * Sve ostale BE poruke (npr. "Neispravan email ili lozinka.", "Nalog je
+     * deaktiviran.") sad su SR jer su uskladjene 12.05.2026 — vracamo raw.
      */
     private fun mapLoginError(raw: String?): String? {
         if (raw == null) return null
-        if (!raw.startsWith("Account temporarily locked", ignoreCase = true)) return raw
-        val seconds = Regex("(\\d+)\\s*seconds?", RegexOption.IGNORE_CASE)
-            .find(raw)
-            ?.groupValues
-            ?.getOrNull(1)
-            ?.toIntOrNull()
-        val minutes = seconds?.let { ((it + 59) / 60).coerceAtLeast(1) }
-        return if (minutes != null) {
-            "Nalog je privremeno zakljucan. Pokusajte ponovo za $minutes min."
-        } else {
-            "Nalog je privremeno zakljucan zbog vise neuspesnih pokusaja. Pokusajte kasnije."
+
+        // Nov SR prefix (BE 12.05.2026 vece)
+        if (raw.startsWith("Nalog je privremeno zakljucan", ignoreCase = true)) {
+            return raw
         }
+
+        // Stari EN prefix (backwards-compat)
+        if (raw.startsWith("Account temporarily locked", ignoreCase = true)) {
+            val seconds = Regex("(\\d+)\\s*seconds?", RegexOption.IGNORE_CASE)
+                .find(raw)
+                ?.groupValues
+                ?.getOrNull(1)
+                ?.toIntOrNull()
+            val minutes = seconds?.let { ((it + 59) / 60).coerceAtLeast(1) }
+            return if (minutes != null) {
+                "Nalog je privremeno zakljucan. Pokusajte ponovo za $minutes min."
+            } else {
+                "Nalog je privremeno zakljucan zbog vise neuspesnih pokusaja. Pokusajte kasnije."
+            }
+        }
+
+        return raw
     }
 
     private fun validateEmail(value: String): String? {
